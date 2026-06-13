@@ -1,0 +1,806 @@
+---
+// index.astro — Main landing page for System Archaeologist
+---
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>System Archaeologist — Reverse-Engineer Any Product</title>
+  <meta name="description" content="AI-powered tool that reverse-engineers how any software product works using DSPy evidence-based reasoning, architecture diagrams, and multi-agent debate." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    /* ── Reset & Base ─────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:          #08090c;
+      --bg-card:     #0f1117;
+      --bg-hover:    #161922;
+      --border:      rgba(255,255,255,0.07);
+      --border-glow: rgba(99,102,241,0.4);
+      --accent:      #6366f1;
+      --accent-2:    #818cf8;
+      --accent-green:#22d3ee;
+      --accent-amber:#f59e0b;
+      --accent-red:  #f43f5e;
+      --text:        #e2e8f0;
+      --text-muted:  #64748b;
+      --text-dim:    #94a3b8;
+      --mono:        'JetBrains Mono', monospace;
+      --sans:        'Inter', sans-serif;
+      --radius:      12px;
+      --radius-sm:   8px;
+    }
+
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: var(--sans);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+      line-height: 1.6;
+    }
+
+    /* ── Background grid ──────────────────────────────────────────────── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(99,102,241,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(99,102,241,0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── Layout ───────────────────────────────────────────────────────── */
+    .container { max-width: 900px; margin: 0 auto; padding: 0 24px; position: relative; z-index: 1; }
+
+    /* ── Header ───────────────────────────────────────────────────────── */
+    header {
+      padding: 32px 0 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 600;
+      font-size: 15px;
+      color: var(--text);
+      letter-spacing: -0.3px;
+    }
+    .logo-icon {
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+    }
+    .badge {
+      font-size: 11px;
+      font-family: var(--mono);
+      background: rgba(99,102,241,0.15);
+      border: 1px solid rgba(99,102,241,0.25);
+      color: var(--accent-2);
+      padding: 2px 8px;
+      border-radius: 20px;
+    }
+
+    /* ── Hero ─────────────────────────────────────────────────────────── */
+    .hero {
+      padding: 80px 0 48px;
+      text-align: center;
+    }
+    .hero-eyebrow {
+      font-size: 12px;
+      font-family: var(--mono);
+      color: var(--accent-2);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 20px;
+    }
+    .hero h1 {
+      font-size: clamp(36px, 6vw, 58px);
+      font-weight: 700;
+      letter-spacing: -2px;
+      line-height: 1.1;
+      margin-bottom: 20px;
+      background: linear-gradient(135deg, #fff 30%, var(--accent-2) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero p {
+      font-size: 17px;
+      color: var(--text-dim);
+      max-width: 520px;
+      margin: 0 auto 40px;
+      line-height: 1.7;
+    }
+
+    /* ── Search Box ───────────────────────────────────────────────────── */
+    .search-wrapper {
+      position: relative;
+      max-width: 640px;
+      margin: 0 auto;
+    }
+    .search-form {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+    .search-input-wrap {
+      flex: 1;
+      position: relative;
+    }
+    .search-input-wrap::before {
+      content: '⌕';
+      position: absolute;
+      left: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      font-size: 20px;
+      pointer-events: none;
+    }
+    #searchInput {
+      width: 100%;
+      padding: 16px 16px 16px 48px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 15px;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    #searchInput:focus {
+      border-color: var(--border-glow);
+      box-shadow: 0 0 0 3px rgba(99,102,241,0.1), 0 0 20px rgba(99,102,241,0.05);
+    }
+    #searchInput::placeholder { color: var(--text-muted); }
+
+    .btn-analyze {
+      padding: 16px 28px;
+      background: linear-gradient(135deg, var(--accent), #4f46e5);
+      border: none;
+      border-radius: var(--radius);
+      color: #fff;
+      font-family: var(--sans);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: opacity 0.2s, transform 0.1s, box-shadow 0.2s;
+      box-shadow: 0 4px 15px rgba(99,102,241,0.3);
+    }
+    .btn-analyze:hover { opacity: 0.9; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(99,102,241,0.4); }
+    .btn-analyze:active { transform: translateY(0); }
+    .btn-analyze:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    /* ── Suggestions ──────────────────────────────────────────────────── */
+    .suggestions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      margin-top: 16px;
+    }
+    .suggestion-chip {
+      font-size: 12px;
+      font-family: var(--mono);
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+      padding: 6px 12px;
+      border-radius: 20px;
+      cursor: pointer;
+      transition: border-color 0.2s, color 0.2s;
+    }
+    .suggestion-chip:hover { border-color: var(--accent); color: var(--accent-2); }
+
+    /* ── Stream Viewer ────────────────────────────────────────────────── */
+    #streamSection { display: none; padding: 48px 0; }
+    #streamSection.visible { display: block; }
+
+    .stream-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+    }
+    .stream-title {
+      font-size: 13px;
+      font-family: var(--mono);
+      color: var(--text-muted);
+    }
+    .stream-title span { color: var(--accent-2); font-weight: 500; }
+
+    /* ── Stage Cards ──────────────────────────────────────────────────── */
+    #stagesContainer { display: flex; flex-direction: column; gap: 12px; }
+
+    .stage-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      animation: slideIn 0.3s ease forwards;
+    }
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .stage-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 18px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .stage-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+      flex-shrink: 0;
+      animation: pulse 1.5s infinite;
+    }
+    .stage-dot.done { background: var(--accent-green); animation: none; }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.4; }
+    }
+
+    .stage-label {
+      font-size: 12px;
+      font-family: var(--mono);
+      color: var(--accent-2);
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .stage-msg {
+      font-size: 13px;
+      color: var(--text-dim);
+      flex: 1;
+    }
+    .stage-progress {
+      font-size: 11px;
+      font-family: var(--mono);
+      color: var(--text-muted);
+    }
+
+    .stage-body {
+      padding: 0 18px 16px;
+      display: none;
+      border-top: 1px solid var(--border);
+    }
+    .stage-body.open { display: block; }
+
+    .stage-body pre {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--text-dim);
+      white-space: pre-wrap;
+      word-break: break-word;
+      line-height: 1.6;
+      margin-top: 12px;
+    }
+
+    .evidence-list, .contradiction-list {
+      list-style: none;
+      margin-top: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .evidence-list li, .contradiction-list li {
+      font-size: 12px;
+      font-family: var(--mono);
+      color: var(--text-dim);
+      line-height: 1.5;
+      padding: 8px 10px;
+      background: rgba(255,255,255,0.02);
+      border-radius: 6px;
+      border-left: 2px solid var(--accent);
+    }
+    .contradiction-list li { border-left-color: var(--accent-amber); }
+
+    /* ── Confidence Gauge ─────────────────────────────────────────────── */
+    .confidence-block {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-top: 12px;
+    }
+    .gauge-ring {
+      position: relative;
+      width: 72px;
+      height: 72px;
+      flex-shrink: 0;
+    }
+    .gauge-ring svg { transform: rotate(-90deg); }
+    .gauge-track { fill: none; stroke: rgba(255,255,255,0.05); stroke-width: 5; }
+    .gauge-fill  { fill: none; stroke-width: 5; stroke-linecap: round; transition: stroke-dashoffset 1s ease; }
+    .gauge-text {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--mono);
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .design-text {
+      font-size: 13px;
+      color: var(--text-dim);
+      line-height: 1.7;
+      margin-top: 12px;
+      white-space: pre-wrap;
+    }
+
+    /* ── Mermaid ──────────────────────────────────────────────────────── */
+    .mermaid-wrap {
+      margin-top: 12px;
+      background: rgba(255,255,255,0.02);
+      border-radius: 8px;
+      padding: 16px;
+      overflow-x: auto;
+      min-height: 80px;
+    }
+    .mermaid-wrap svg { max-width: 100%; }
+
+    /* ── Debate ───────────────────────────────────────────────────────── */
+    .debate-timeline {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 12px;
+    }
+    .debate-item {
+      border-radius: 8px;
+      padding: 12px 14px;
+      animation: slideIn 0.3s ease forwards;
+    }
+    .debate-item.agent-a { background: rgba(99,102,241,0.08); border-left: 3px solid var(--accent); }
+    .debate-item.agent-b { background: rgba(34,211,238,0.06); border-left: 3px solid var(--accent-green); }
+    .debate-item.judge   { background: rgba(245,158,11,0.08); border-left: 3px solid var(--accent-amber); }
+    .debate-item.topic   { background: rgba(255,255,255,0.03); border-left: 3px solid var(--text-muted); }
+    .debate-speaker {
+      font-size: 10px;
+      font-family: var(--mono);
+      font-weight: 600;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .agent-a .debate-speaker { color: var(--accent-2); }
+    .agent-b .debate-speaker { color: var(--accent-green); }
+    .judge   .debate-speaker { color: var(--accent-amber); }
+    .topic   .debate-speaker { color: var(--text-muted); }
+    .debate-text { font-size: 13px; color: var(--text-dim); line-height: 1.6; }
+
+    /* ── Progress Bar ─────────────────────────────────────────────────── */
+    .progress-bar-wrap {
+      background: rgba(255,255,255,0.04);
+      border-radius: 4px;
+      height: 3px;
+      margin-bottom: 24px;
+      overflow: hidden;
+    }
+    #progressBar {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), var(--accent-green));
+      border-radius: 4px;
+      width: 0%;
+      transition: width 0.5s ease;
+    }
+
+    /* ── History ──────────────────────────────────────────────────────── */
+    #historySection { padding: 0 0 60px; }
+    .section-title {
+      font-size: 11px;
+      font-family: var(--mono);
+      color: var(--text-muted);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+    .history-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 10px;
+    }
+    .history-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 14px;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      text-decoration: none;
+    }
+    .history-card:hover { border-color: var(--border-glow); background: var(--bg-hover); }
+    .history-name { font-size: 14px; font-weight: 500; color: var(--text); margin-bottom: 4px; }
+    .history-meta { font-size: 11px; font-family: var(--mono); color: var(--text-muted); }
+    .history-conf { color: var(--accent-green); }
+
+    /* ── Error toast ──────────────────────────────────────────────────── */
+    #errorToast {
+      display: none;
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: rgba(244,63,94,0.15);
+      border: 1px solid rgba(244,63,94,0.3);
+      color: var(--accent-red);
+      font-size: 13px;
+      font-family: var(--mono);
+      padding: 12px 16px;
+      border-radius: 8px;
+      z-index: 100;
+      max-width: 340px;
+    }
+    #errorToast.visible { display: block; animation: slideIn 0.2s ease; }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <!-- ── Header ─────────────────────────────────────────────────────────── -->
+    <header>
+      <div class="logo">
+        <div class="logo-icon">🏛</div>
+        System Archaeologist
+      </div>
+      <span class="badge">DSPy v2.5 · FastAPI · Ollama</span>
+    </header>
+
+    <!-- ── Hero ───────────────────────────────────────────────────────────── -->
+    <section class="hero">
+      <p class="hero-eyebrow">AI-Powered Reverse Engineering</p>
+      <h1>How does any system<br/>actually work?</h1>
+      <p>Enter a product name. Get a probable architecture, supporting evidence, contradiction analysis, and a multi-agent debate — all powered by DSPy reasoning.</p>
+
+      <div class="search-wrapper">
+        <form class="search-form" id="analyzeForm">
+          <div class="search-input-wrap">
+            <input
+              type="text"
+              id="searchInput"
+              placeholder="e.g. Cursor, Duolingo, Notion AI, Kafka…"
+              autocomplete="off"
+              spellcheck="false"
+            />
+          </div>
+          <button type="submit" class="btn-analyze" id="analyzeBtn">Analyze →</button>
+        </form>
+
+        <div class="suggestions">
+          <button class="suggestion-chip" data-q="Cursor">Cursor</button>
+          <button class="suggestion-chip" data-q="Duolingo">Duolingo</button>
+          <button class="suggestion-chip" data-q="Notion AI">Notion AI</button>
+          <button class="suggestion-chip" data-q="Redis">Redis</button>
+          <button class="suggestion-chip" data-q="Docker">Docker</button>
+          <button class="suggestion-chip" data-q="Kafka">Kafka</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Stream Section ─────────────────────────────────────────────────── -->
+    <section id="streamSection">
+      <div class="stream-header">
+        <div class="stream-title">Analyzing: <span id="systemNameLabel"></span></div>
+      </div>
+      <div class="progress-bar-wrap">
+        <div id="progressBar"></div>
+      </div>
+      <div id="stagesContainer"></div>
+    </section>
+
+    <!-- ── History ────────────────────────────────────────────────────────── -->
+    <section id="historySection">
+      <div class="section-title">Recent Analyses</div>
+      <div class="history-grid" id="historyGrid">
+        <div style="color: var(--text-muted); font-size: 13px; font-family: var(--mono);">Loading history…</div>
+      </div>
+    </section>
+
+  </div>
+
+  <div id="errorToast"></div>
+
+  <!-- ── Scripts ─────────────────────────────────────────────────────────── -->
+  <script type="module">
+    const API = 'http://localhost:8000';
+
+    // ── Mermaid (loaded lazily) ─────────────────────────────────────────────
+    let mermaidLoaded = false;
+    async function ensureMermaid() {
+      if (mermaidLoaded) return;
+      const { default: mermaid } = await import('https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs');
+      mermaid.initialize({ startOnLoad: false, theme: 'dark', securityLevel: 'loose' });
+      window.__mermaid = mermaid;
+      mermaidLoaded = true;
+    }
+
+    async function renderMermaid(container, code) {
+      await ensureMermaid();
+      try {
+        const id = 'mermaid-' + Math.random().toString(36).slice(2);
+        const { svg } = await window.__mermaid.render(id, code);
+        container.innerHTML = svg;
+      } catch (e) {
+        container.innerHTML = `<pre style="color:var(--accent-amber);font-size:11px">${code}</pre>`;
+      }
+    }
+
+    // ── Helpers ─────────────────────────────────────────────────────────────
+    function showError(msg) {
+      const t = document.getElementById('errorToast');
+      t.textContent = '⚠ ' + msg;
+      t.classList.add('visible');
+      setTimeout(() => t.classList.remove('visible'), 5000);
+    }
+
+    function setProgress(pct) {
+      document.getElementById('progressBar').style.width = pct + '%';
+    }
+
+    function formatJSON(val) {
+      if (typeof val === 'string') return val;
+      return JSON.stringify(val, null, 2);
+    }
+
+    // ── Stage card builder ───────────────────────────────────────────────────
+    function addStageCard({ stage, message, data, progress }) {
+      const container = document.getElementById('stagesContainer');
+      setProgress(progress ?? 0);
+
+      const card = document.createElement('div');
+      card.className = 'stage-card';
+      card.id = 'stage-' + stage;
+
+      const labelMap = {
+        evidence_web:   '🌐 Web Search',
+        evidence:       '📋 Evidence',
+        hypothesis:     '💡 Hypothesis',
+        contradictions: '⚠ Contradictions',
+        design:         '🏗 Final Design',
+        mermaid:        '📊 Diagram',
+        debate_start:   '⚔ Debate',
+        debate_topic:   '❓ Debate Topic',
+        agent_a:        '🤖 Agent A',
+        agent_b:        '🤖 Agent B',
+        verdict:        '⚖ Judge Verdict',
+        saved:          '💾 Saved',
+      };
+
+      const label = labelMap[stage] || stage;
+
+      card.innerHTML = `
+        <div class="stage-header" onclick="this.nextElementSibling.classList.toggle('open')">
+          <div class="stage-dot"></div>
+          <span class="stage-label">${label}</span>
+          <span class="stage-msg">${message || ''}</span>
+          <span class="stage-progress">${progress ?? ''}%</span>
+        </div>
+        <div class="stage-body open" id="body-${stage}"></div>
+      `;
+      container.appendChild(card);
+
+      // Mark dot as done
+      card.querySelector('.stage-dot').classList.add('done');
+
+      // Populate body
+      populateBody(stage, data, card.querySelector(`#body-${stage}`));
+    }
+
+    function populateBody(stage, data, bodyEl) {
+      if (!data || (Array.isArray(data) && data.length === 0)) {
+        bodyEl.style.display = 'none';
+        return;
+      }
+
+      if (stage === 'evidence_web' || stage === 'evidence') {
+        const items = Array.isArray(data) ? data : [data];
+        bodyEl.innerHTML = `<ul class="evidence-list">${items.map(e => `<li>${escHtml(e)}</li>`).join('')}</ul>`;
+      } else if (stage === 'hypothesis') {
+        bodyEl.innerHTML = `<pre>${escHtml(data)}</pre>`;
+      } else if (stage === 'contradictions') {
+        const items = Array.isArray(data) ? data : [data];
+        bodyEl.innerHTML = `<ul class="contradiction-list">${items.map(c => `<li>${escHtml(c)}</li>`).join('')}</ul>`;
+      } else if (stage === 'design') {
+        const d = data;
+        const conf = d.confidence ?? 0;
+        const color = conf >= 80 ? '#22d3ee' : conf >= 60 ? '#f59e0b' : '#f43f5e';
+        const r = 30, circ = 2 * Math.PI * r;
+        const offset = circ - (conf / 100) * circ;
+        bodyEl.innerHTML = `
+          <div class="confidence-block">
+            <div class="gauge-ring">
+              <svg viewBox="0 0 72 72" width="72" height="72">
+                <circle class="gauge-track" cx="36" cy="36" r="${r}" />
+                <circle class="gauge-fill" cx="36" cy="36" r="${r}"
+                  stroke="${color}"
+                  stroke-dasharray="${circ}"
+                  stroke-dashoffset="${offset}" />
+              </svg>
+              <div class="gauge-text" style="color:${color}">${conf}%</div>
+            </div>
+            <div style="flex:1">
+              <div style="font-size:11px;font-family:var(--mono);color:var(--text-muted);margin-bottom:4px">CONFIDENCE</div>
+              <div style="font-size:13px;color:var(--text-dim)">${conf >= 80 ? 'High confidence' : conf >= 60 ? 'Moderate confidence' : 'Speculative'} — based on public evidence</div>
+            </div>
+          </div>
+          <div class="design-text">${escHtml(d.final_design ?? '')}</div>
+          ${d.alternative_hypotheses?.length ? `
+            <div style="margin-top:12px;font-size:11px;font-family:var(--mono);color:var(--text-muted);margin-bottom:6px">ALTERNATIVE HYPOTHESES</div>
+            <ul class="evidence-list">${d.alternative_hypotheses.map(h => `<li>${escHtml(h)}</li>`).join('')}</ul>
+          ` : ''}
+        `;
+      } else if (stage === 'mermaid') {
+        bodyEl.innerHTML = `<div class="mermaid-wrap" id="mermaid-render">Loading diagram…</div>`;
+        renderMermaid(bodyEl.querySelector('#mermaid-render'), data);
+      } else if (stage === 'debate_topic') {
+        bodyEl.innerHTML = `
+          <div class="debate-timeline">
+            <div class="debate-item topic">
+              <div class="debate-speaker">Topic</div>
+              <div class="debate-text">${escHtml(data.topic ?? '')}</div>
+            </div>
+            <div style="display:flex;gap:8px;font-size:12px;font-family:var(--mono);color:var(--text-muted)">
+              <span style="color:var(--accent-2)">A: ${escHtml(data.position_a ?? '')}</span>
+              <span>vs</span>
+              <span style="color:var(--accent-green)">B: ${escHtml(data.position_b ?? '')}</span>
+            </div>
+          </div>
+        `;
+      } else if (stage === 'agent_a') {
+        bodyEl.innerHTML = `
+          <div class="debate-item agent-a">
+            <div class="debate-speaker">Agent A — ${escHtml(data.position ?? '')}</div>
+            <div class="debate-text">${escHtml(data.argument ?? '')}</div>
+          </div>
+        `;
+      } else if (stage === 'agent_b') {
+        bodyEl.innerHTML = `
+          <div class="debate-item agent-b">
+            <div class="debate-speaker">Agent B — ${escHtml(data.position ?? '')}</div>
+            <div class="debate-text">${escHtml(data.argument ?? '')}</div>
+          </div>
+        `;
+      } else if (stage === 'verdict') {
+        bodyEl.innerHTML = `
+          <div class="debate-timeline">
+            <div class="debate-item judge">
+              <div class="debate-speaker">⚖ Judge — ${escHtml(data.winning_position ?? '')}</div>
+              <div class="debate-text">${escHtml(data.verdict ?? '')}</div>
+            </div>
+            ${data.synthesis ? `
+            <div class="debate-item" style="background:rgba(255,255,255,0.03);border-left:3px solid var(--border)">
+              <div class="debate-speaker" style="color:var(--text-muted)">Synthesis</div>
+              <div class="debate-text">${escHtml(data.synthesis)}</div>
+            </div>` : ''}
+          </div>
+        `;
+      } else if (stage === 'saved') {
+        bodyEl.innerHTML = data?.id
+          ? `<div style="font-size:12px;font-family:var(--mono);color:var(--text-muted)">ID: <span style="color:var(--accent-2)">${data.id}</span></div>`
+          : '';
+        setProgress(100);
+        loadHistory();
+      } else {
+        bodyEl.innerHTML = `<pre>${escHtml(formatJSON(data))}</pre>`;
+      }
+    }
+
+    function escHtml(str) {
+      return String(str ?? '')
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    // ── SSE Analysis ─────────────────────────────────────────────────────────
+    function runAnalysis(systemName) {
+      const streamSection = document.getElementById('streamSection');
+      const stagesContainer = document.getElementById('stagesContainer');
+      const btn = document.getElementById('analyzeBtn');
+
+      // Reset
+      stagesContainer.innerHTML = '';
+      streamSection.classList.add('visible');
+      document.getElementById('systemNameLabel').textContent = systemName;
+      setProgress(0);
+      btn.disabled = true;
+      btn.textContent = 'Analyzing…';
+
+      // Scroll to stream section
+      streamSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+      const url = `${API}/api/analyze/stream?system=${encodeURIComponent(systemName)}&debate=true`;
+      const es = new EventSource(url);
+
+      es.onmessage = (event) => {
+        const chunk = JSON.parse(event.data);
+        addStageCard(chunk);
+
+        if (chunk.stage === 'saved') {
+          es.close();
+          btn.disabled = false;
+          btn.textContent = 'Analyze →';
+        }
+      };
+
+      es.onerror = (err) => {
+        es.close();
+        btn.disabled = false;
+        btn.textContent = 'Analyze →';
+        showError('Connection error — is the backend running? (uvicorn backend.main:app)');
+      };
+    }
+
+    // ── Form ──────────────────────────────────────────────────────────────────
+    document.getElementById('analyzeForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const val = document.getElementById('searchInput').value.trim();
+      if (val) runAnalysis(val);
+    });
+
+    document.querySelectorAll('.suggestion-chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        const q = chip.dataset.q;
+        document.getElementById('searchInput').value = q;
+        runAnalysis(q);
+      });
+    });
+
+    // ── History ───────────────────────────────────────────────────────────────
+    async function loadHistory() {
+      const grid = document.getElementById('historyGrid');
+      try {
+        const res = await fetch(`${API}/api/analyses?limit=8`);
+        const items = await res.json();
+        if (!items.length) {
+          grid.innerHTML = '<div style="color:var(--text-muted);font-size:13px;font-family:var(--mono)">No analyses yet — try one above.</div>';
+          return;
+        }
+        grid.innerHTML = items.map(a => `
+          <div class="history-card" onclick="fillSearch('${escHtml(a.system_name)}')">
+            <div class="history-name">${escHtml(a.system_name)}</div>
+            <div class="history-meta">
+              <span class="history-conf">${a.confidence}% conf</span> ·
+              ${new Date(a.created_at).toLocaleDateString()}
+            </div>
+          </div>
+        `).join('');
+      } catch {
+        grid.innerHTML = '<div style="color:var(--text-muted);font-size:13px;font-family:var(--mono)">Backend offline — start with: uvicorn backend.main:app</div>';
+      }
+    }
+
+    window.fillSearch = (name) => {
+      document.getElementById('searchInput').value = name;
+      document.getElementById('searchInput').focus();
+    };
+
+    loadHistory();
+  </script>
+</body>
+</html>
