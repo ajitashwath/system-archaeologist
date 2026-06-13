@@ -1,15 +1,15 @@
-# 🏛 System Archaeologist
+# System Archaeologist
 - Reverse-engineer how any software product works using evidence-based reasoning, powered by **DSPy v2.5**.
 
 ## What it does
 Enter a product name (e.g. "Cursor", "Duolingo", "Kafka") and get:
 
-- 📋 **Evidence** — real web sources via Tavily + LLM knowledge
-- 💡 **Architecture Hypothesis** — layered component tree
-- ⚠️ **Contradictions** — challenges to the hypothesis
-- 🏗 **Final Design** — synthesized architecture + confidence score
-- 📊 **Mermaid Diagram** — rendered architecture visualization
-- ⚔️ **Multi-Agent Debate** — Agent A vs Agent B, judged by an impartial third agent
+- **Evidence** — real web sources via Tavily + LLM knowledge
+- **Architecture Hypothesis** — layered component tree
+- **Contradictions** — challenges to the hypothesis
+- **Final Design** — synthesized architecture + confidence score
+- **Mermaid Diagram** — rendered architecture visualization
+- **Multi-Agent Debate** — Agent A vs Agent B, judged by an impartial third agent
 
 Everything streams **live** via SSE (Server-Sent Events) as each DSPy stage completes.
 
