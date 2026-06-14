@@ -13,20 +13,16 @@ Enter a product name (e.g. "Cursor", "Duolingo", "Kafka") and get:
 
 Everything streams **live** via SSE (Server-Sent Events) as each DSPy stage completes.
 
----
-
 ## Stack
 
 | Layer      | Technology |
 |---|---|
 | Reasoning  | DSPy v2.5+ (ChainOfThought, 7 Signatures) |
-| LLM        | Ollama (primary) → Gemini (fallback) |
+| LLM        | Ollama → Gemini (fallback) |
 | Search     | Tavily API |
 | API        | FastAPI + SSE |
 | Database   | PostgreSQL (asyncpg) |
-| Frontend   | Astro (lightweight) |
-
----
+| Frontend   | Astro |
 
 ## Quick Start
 
@@ -86,8 +82,6 @@ npm run dev
 # App at: http://localhost:4321
 ```
 
----
-
 ## API Reference
 
 | Method | Endpoint | Description |
@@ -120,8 +114,6 @@ Stages in order:
 7. `debate_topic` → `agent_a` → `agent_b` → `verdict`
 8. `saved` — stored to PostgreSQL
 
----
-
 ## Evaluation
 
 ```bash
@@ -134,8 +126,6 @@ Evaluates against 5 well-known systems (Redis, Git, Docker, Nginx, Kafka) and re
 - Technology Recall
 - Pattern Recall
 - Confidence Calibration Error
-
----
 
 ## Project Structure
 
