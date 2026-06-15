@@ -1,5 +1,5 @@
 # System Archaeologist
-- Reverse-engineer how any software product works using evidence-based reasoning, powered by **DSPy v2.5**.
+Reverse-engineer how any software product works using evidence-based reasoning, powered by **DSPy v2.5**.
 
 ## What it does
 Enter a product name (e.g. "Cursor", "Duolingo", "Kafka") and get:
