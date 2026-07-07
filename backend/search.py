@@ -12,6 +12,26 @@ logger = logging.getLogger(__name__)
 
 TAVILY_API_KEY = os.getenv("TAVILY_API_KEY", "")
 
+# Soft limit: prefer sentence boundaries but never exceed this
+_SNIPPET_MAX_CHARS = 400
+
+
+def _snap_to_sentence(text: str, max_chars: int = _SNIPPET_MAX_CHARS) -> str:
+    """Truncate ``text`` to at most ``max_chars`` but snap back to the last
+    sentence boundary so evidence items contain complete thoughts.
+    """
+    if len(text) <= max_chars:
+        return text
+    truncated = text[:max_chars]
+    # Walk back to the last sentence-ending punctuation followed by whitespace
+    for sep in (". ", "! ", "? ", ".\n", "!\n", "?\n"):
+        idx = truncated.rfind(sep)
+        # Only snap if the boundary is in the second half (avoids very short snippets)
+        if idx > max_chars // 2:
+            return truncated[: idx + 1].strip()
+    # No good boundary found — fall back to hard truncation with ellipsis
+    return truncated.rstrip() + "…"
+
 
 def build_queries(system_name: str) -> list[str]:
     return [
@@ -58,8 +78,7 @@ def gather_evidence(system_name: str, max_results_per_query: int = 4) -> list[st
                 content = result.get("content", "").strip()
 
                 if content:
-
-                    snippet = content[:300].replace("\n", " ").strip()
+                    snippet = _snap_to_sentence(content.replace("\n", " ").strip())
                     if title:
                         evidence.append(f"[{title}] {snippet} (source: {url})")
                     else:

@@ -153,7 +153,10 @@ def run_evaluation() -> list[EvalResult]:
             comp  = component_recall(known, result_dict)
             tech  = technology_recall(known, result_dict)
             pat   = pattern_recall(known, result_dict)
-            conf  = int(pred.confidence) if str(pred.confidence).isdigit() else 0
+            try:
+                conf = max(0, min(100, int(float(str(pred.confidence).strip().rstrip('%')))))
+            except (ValueError, TypeError):
+                conf = 50
             cal   = confidence_calibration_error(0.6 * comp + 0.4 * tech, conf)
 
             er = EvalResult(
@@ -236,11 +239,23 @@ if __name__ == "__main__":
     except Exception:
         if not GOOGLE_API_KEY:
             raise RuntimeError("Neither Ollama nor GOOGLE_API_KEY available.")
-        lm = dspy.LM(f"google/{GEMINI_MODEL}", api_key=GOOGLE_API_KEY)
+        lm = dspy.LM(f"gemini/{GEMINI_MODEL}", api_key=GOOGLE_API_KEY)
         logger.info("Using Gemini: %s", GEMINI_MODEL)
 
     dspy.configure(lm=lm)
 
+    import argparse
+    parser = argparse.ArgumentParser(description="System Archaeologist Evaluation")
+    parser.add_argument(
+        "--optimize",
+        action="store_true",
+        help="Run BootstrapFewShot optimisation after evaluation and save optimized_pipeline.json",
+    )
+    args = parser.parse_args()
+
     results = run_evaluation()
     print_report(results)
 
+    if args.optimize:
+        logger.info("Starting optimisation run…")
+        run_optimization()

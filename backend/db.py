@@ -44,6 +44,22 @@ CREATE INDEX IF NOT EXISTS idx_analyses_created_at  ON analyses (created_at DESC
 """
 
 
+async def _init_connection(conn: asyncpg.Connection) -> None:
+    """Register JSON/JSONB codecs so asyncpg auto-encodes dicts/lists."""
+    await conn.set_type_codec(
+        "jsonb",
+        encoder=json.dumps,
+        decoder=json.loads,
+        schema="pg_catalog",
+    )
+    await conn.set_type_codec(
+        "json",
+        encoder=json.dumps,
+        decoder=json.loads,
+        schema="pg_catalog",
+    )
+
+
 async def init_pool() -> None:
     global _pool
     _pool = await asyncpg.create_pool(
@@ -51,6 +67,7 @@ async def init_pool() -> None:
         min_size=2,
         max_size=10,
         command_timeout=60,
+        init=_init_connection,
     )
     async with _pool.acquire() as conn:
         await conn.execute(CREATE_TABLE_SQL)
@@ -95,14 +112,14 @@ async def save_analysis(
             """,
             record_id,
             system_name,
-            json.dumps(evidence),
+            evidence,               # JSONB codec handles serialisation
             architecture,
-            json.dumps(contradictions),
+            contradictions,
             final_design,
             mermaid_code,
-            json.dumps(debate),
+            debate,
             confidence,
-            json.dumps(alternative_hypotheses),
+            alternative_hypotheses,
         )
 
     logger.info("Saved analysis '%s' with id=%s", system_name, record_id)
@@ -123,18 +140,36 @@ async def get_analysis(analysis_id: str) -> dict[str, Any] | None:
     return row_to_dict(row)
 
 
-async def list_analyses(limit: int = 20) -> list[dict[str, Any]]:
+async def list_analyses(limit: int = 20, deduplicate: bool = True) -> list[dict[str, Any]]:
+    """Return recent analyses.
+
+    When ``deduplicate=True`` (default) returns the **latest** run per unique
+    system_name so the history UI doesn't fill up with repeated entries.
+    Pass ``deduplicate=False`` to get every row.
+    """
     pool = get_pool()
     async with pool.acquire() as conn:
-        rows = await conn.fetch(
-            """
-            SELECT id, system_name, confidence, created_at
-            FROM analyses
-            ORDER BY created_at DESC
-            LIMIT $1
-            """,
-            limit,
-        )
+        if deduplicate:
+            rows = await conn.fetch(
+                """
+                SELECT DISTINCT ON (system_name)
+                    id, system_name, confidence, created_at
+                FROM analyses
+                ORDER BY system_name, created_at DESC
+                LIMIT $1
+                """,
+                limit,
+            )
+        else:
+            rows = await conn.fetch(
+                """
+                SELECT id, system_name, confidence, created_at
+                FROM analyses
+                ORDER BY created_at DESC
+                LIMIT $1
+                """,
+                limit,
+            )
 
     return [
         {
@@ -145,6 +180,31 @@ async def list_analyses(limit: int = 20) -> list[dict[str, Any]]:
         }
         for row in rows
     ]
+
+
+async def find_recent_analysis(
+    system_name: str,
+    within_hours: int = 1,
+) -> dict[str, Any] | None:
+    """Return the most recent full analysis for ``system_name`` if it was
+    created within ``within_hours`` hours, otherwise ``None``.
+
+    Useful to skip re-analysis when a fresh result already exists.
+    """
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            """
+            SELECT * FROM analyses
+            WHERE system_name ILIKE $1
+              AND created_at >= NOW() - ($2 || ' hours')::INTERVAL
+            ORDER BY created_at DESC
+            LIMIT 1
+            """,
+            system_name,
+            str(within_hours),
+        )
+    return row_to_dict(row) if row else None
 
 
 async def search_analyses(query: str, limit: int = 10) -> list[dict[str, Any]]:
@@ -175,6 +235,8 @@ async def search_analyses(query: str, limit: int = 10) -> list[dict[str, Any]]:
 
 def row_to_dict(row: asyncpg.Record) -> dict[str, Any]:
     d = dict(row)
+    # asyncpg returns JSONB columns as native Python objects (list/dict).
+    # If for any reason they come back as strings (e.g. stored as TEXT), parse them.
     for field in ("evidence", "contradictions", "debate", "alternative_hypotheses"):
         if isinstance(d.get(field), str):
             d[field] = json.loads(d[field])

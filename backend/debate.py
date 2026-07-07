@@ -9,6 +9,8 @@ from signatures import DebatePosition, JudgeDebate
 
 logger = logging.getLogger(__name__)
 
+_LLM_TIMEOUT = 90.0
+
 
 class ExtractDebateTopics(dspy.Signature):
 
@@ -28,6 +30,7 @@ class ExtractDebateTopics(dspy.Signature):
 
 
 class MultiAgentDebate(dspy.Module):
+    """Used for batch / evaluation runs. Streaming uses stream_debate()."""
 
     def __init__(self) -> None:
         super().__init__()
@@ -79,21 +82,42 @@ class MultiAgentDebate(dspy.Module):
         )
 
 
+def _truncate(text: str, max_len: int = 60) -> str:
+    return text[:max_len] + ("..." if len(text) > max_len else "")
+
+
 async def stream_debate(
     system_name: str,
     architecture: str,
     evidence: list[str],
 ):
-    debate_module = MultiAgentDebate()
-    loop = asyncio.get_event_loop()
-    topics = await loop.run_in_executor(
-        None,
-        lambda: debate_module.topic_extractor(
-            system_name=system_name,
-            architecture=architecture,
-            evidence=evidence,
-        ),
-    )
+    """Yield debate stages one by one.
+
+    Emits a ``debate_error`` stage on any failure so the client always
+    receives a terminal event rather than a dead stream.
+    """
+    module = MultiAgentDebate()
+    loop = asyncio.get_running_loop()
+
+    # ── Extract debate topic ──────────────────────────────────────────────────
+    try:
+        topics = await asyncio.wait_for(
+            loop.run_in_executor(
+                None,
+                lambda: module.topic_extractor(
+                    system_name=system_name,
+                    architecture=architecture,
+                    evidence=evidence,
+                ),
+            ),
+            timeout=_LLM_TIMEOUT,
+        )
+    except asyncio.TimeoutError:
+        yield {"stage": "debate_error", "message": "Debate topic extraction timed out.", "data": None, "progress": 0}
+        return
+    except Exception as exc:
+        yield {"stage": "debate_error", "message": f"Debate topic extraction failed: {exc}", "data": None, "progress": 0}
+        return
 
     yield {
         "stage": "debate_topic",
@@ -106,53 +130,88 @@ async def stream_debate(
         "progress": 0,
     }
 
-    arg_a = await loop.run_in_executor(
-        None,
-        lambda: debate_module.agent_a(
-            system_name=system_name,
-            architecture=architecture,
-            evidence=evidence,
-            position=topics.position_a,
-        ),
-    )
+    # ── Agent A ───────────────────────────────────────────────────────────────
+    try:
+        arg_a = await asyncio.wait_for(
+            loop.run_in_executor(
+                None,
+                lambda: module.agent_a(
+                    system_name=system_name,
+                    architecture=architecture,
+                    evidence=evidence,
+                    position=topics.position_a,
+                ),
+            ),
+            timeout=_LLM_TIMEOUT,
+        )
+    except asyncio.TimeoutError:
+        yield {"stage": "debate_error", "message": "Agent A timed out.", "data": None, "progress": 33}
+        return
+    except Exception as exc:
+        yield {"stage": "debate_error", "message": f"Agent A failed: {exc}", "data": None, "progress": 33}
+        return
 
     yield {
         "stage": "agent_a",
-        "message": f"Agent A argues: {topics.position_a[:60]}...",
+        "message": f"Agent A argues: {_truncate(topics.position_a)}",
         "data": {
             "position": topics.position_a,
             "argument": arg_a.argument,
         },
         "progress": 33,
     }
-    arg_b = await loop.run_in_executor(
-        None,
-        lambda: debate_module.agent_b(
-            system_name=system_name,
-            architecture=architecture,
-            evidence=evidence,
-            position=topics.position_b,
-        ),
-    )
+
+    # ── Agent B ───────────────────────────────────────────────────────────────
+    try:
+        arg_b = await asyncio.wait_for(
+            loop.run_in_executor(
+                None,
+                lambda: module.agent_b(
+                    system_name=system_name,
+                    architecture=architecture,
+                    evidence=evidence,
+                    position=topics.position_b,
+                ),
+            ),
+            timeout=_LLM_TIMEOUT,
+        )
+    except asyncio.TimeoutError:
+        yield {"stage": "debate_error", "message": "Agent B timed out.", "data": None, "progress": 66}
+        return
+    except Exception as exc:
+        yield {"stage": "debate_error", "message": f"Agent B failed: {exc}", "data": None, "progress": 66}
+        return
 
     yield {
         "stage": "agent_b",
-        "message": f"Agent B argues: {topics.position_b[:60]}...",
+        "message": f"Agent B argues: {_truncate(topics.position_b)}",
         "data": {
             "position": topics.position_b,
             "argument": arg_b.argument,
         },
         "progress": 66,
     }
-    verdict = await loop.run_in_executor(
-        None,
-        lambda: debate_module.judge(
-            system_name=system_name,
-            evidence=evidence,
-            argument_a=arg_a.argument,
-            argument_b=arg_b.argument,
-        ),
-    )
+
+    # ── Judge ─────────────────────────────────────────────────────────────────
+    try:
+        verdict = await asyncio.wait_for(
+            loop.run_in_executor(
+                None,
+                lambda: module.judge(
+                    system_name=system_name,
+                    evidence=evidence,
+                    argument_a=arg_a.argument,
+                    argument_b=arg_b.argument,
+                ),
+            ),
+            timeout=_LLM_TIMEOUT,
+        )
+    except asyncio.TimeoutError:
+        yield {"stage": "debate_error", "message": "Judge timed out.", "data": None, "progress": 90}
+        return
+    except Exception as exc:
+        yield {"stage": "debate_error", "message": f"Judge failed: {exc}", "data": None, "progress": 90}
+        return
 
     yield {
         "stage": "verdict",
